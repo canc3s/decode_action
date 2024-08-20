@@ -1,112 +1,83 @@
 import base64
 import bz2
+import time
 import zlib
 import lzma
 import gzip
 from datetime import datetime
-#from Crypto.Cipher import AES
-#from cryptography.fernet import Fernet
-#from Crypto.Cipher import ChaCha20
+import re
+
+# from Crypto.Cipher import AES
+# from cryptography.fernet import Fernet
+# from Crypto.Cipher import ChaCha20
 # 获取当前日期和时间
 now = datetime.now()
+count = 0
 
 # 将日期和时间格式化为字符串
 formatted_date = now.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def try_decode_reversal(data, reversal):
+    if reversal:
+        return data[::-1]
+    else:
+        return data
+
 def try_decompress(data):
-    try:
-        decompressed_data = gzip.decompress(data)
-        return decompressed_data
-    except Exception as e:
-        pass
-    # 尝试使用 bz2 解压缩
-    try:
-        decompressed_data = bz2.decompress(data)
-        # print("使用 bz2 解压缩成功")
-        return decompressed_data
-    except Exception as e:
-        pass
-    # 尝试使用 zlib 解压缩
-    try:
-        decompressed_data = zlib.decompress(data)
-        # print("使用 zlib 解压缩成功")
-        return decompressed_data
-    except Exception as e:
-        pass
-    # 尝试使用 lzma 解压缩
-    try:
-        decompressed_data = lzma.decompress(data)
-        # print("使用 lzma 解压缩成功")
-        return decompressed_data
-    except Exception as e:
-        pass
-    # 如果无法解压缩，则返回原始数据
+    for decompress_func in [gzip.decompress, bz2.decompress, zlib.decompress, lzma.decompress]:
+        try:
+            return decompress_func(data)
+        except Exception as e:
+            pass
     return data
 
 
 def try_decode_base64(data):
     try:
-        decoded_data = base64.b64decode(data)
-        # print("使用 base64 解码成功")
-        return decoded_data
-    except Exception as e:
-        pass
-    # 如果无法解码，则返回原始数据
-    return data
+        return base64.b64decode(data)
+    except Exception:
+        return data
 
 
-def extract_base64_encoded(data):
-    # 查找 base64.b64decode( 的起始位置
-    start_idx = data.find("base64.b64decode(")
-    if start_idx == -1:
-        return None  # 如果未找到目标字符串，返回 None
-    # 查找 ' 的位置，从 base64.b64decode( 后面开始找
-    quote_idx = data.index("'", start_idx + len("base64.b64decode("))
-    # 提取 'XXXX' 中的 XXXX 部分
-    encoded_string = data[quote_idx + 1:data.index("'", quote_idx + 1)]
-    return encoded_string
+def extract_encoded_string(data):
+    if type(data) == str:
+        data = data.encode('utf-8')
+    match = re.findall(br"\(b?\'([^\']{1000,}?)\'\)", data) or re.search(br'\(b?"([^\"]{1000,}?)"\)', data)
+    if match:
+        return match
+    return None
 
 
 def Encoded_script_decode(data):
-
     return
 
 
-def decrypt_nested(data):
+def decrypt_nested(data,reversal):
     while True:
-        new_data = try_decode_base64(data)
-        # print("解密前的数据：", data)
+        global count
+        count += 1
+        print(f"正在进行第 {count} 层解密")
+        new_data = try_decode_reversal(data,reversal)
+        new_data = try_decode_base64(new_data)
         new_data = try_decompress(new_data)
-        # print("解密后的数据：", new_data)
+
         if "exec(" in str(new_data):
-            # 更新 decrypted_data 以便下一次循环使用
-            if "Encoded script" in str(new_data):
-                new_data = "该加密未适配 敬请期待"
-                print("该加密未适配 敬请期待")
-                break
-            elif "exec(" in str(new_data):
-                data = extract_base64_encoded(str(new_data))
-            else:
-                print("未知 加密 无法进一步解密")
-                new_data = "未知 加密 无法进一步解密"
-                break  # 如果 new_data 中不再包含 "exec"，跳出循环
-            # print(data)
+            # 获取所有编码字符串
+            encoded_data_list = extract_encoded_string(new_data)
+            # 循环解密所有编码字符串
+            for encoded_data in encoded_data_list:
+                new_data = decrypt_nested(encoded_data,reversal)
+                return new_data
+                # 使用字符串替换方法更新 new_data
         else:
             print("无法进一步解密，退出循环")
-            break  # 如果 new_data 中不再包含 "exec"，跳出循环
-
-    return new_data  # 返回最终解密后的数据
+            return new_data
 
 
-with open('./input.py', 'r', encoding='utf-8') as file:
-    # 读取文件内容
-    content = file.read().strip()
-    # 打印内容
-    encoded_data = extract_base64_encoded(content)
-    # print(encoded_data)
+
 # 解密嵌套加密数据
-final_decrypted_data = decrypt_nested(encoded_data)
+
 # 输出最终解密结果
 # print("最终解密结果:")
 def process_data(data):
@@ -121,6 +92,26 @@ def process_data(data):
         raise TypeError("Expected string or bytes-like object")
     return byte_data
 
-print(final_decrypted_data)
+final_data = process_data("#") + process_data(formatted_date) + process_data("\n")
+with open('./input.py', 'r', encoding='utf-8') as file:
+    # 读取文件内容
+    content = file.read().strip()
+    reversal = False
+    if "[::-1]" in content:
+        reversal = True
+    # 打印内容
+    for encoded_data in extract_encoded_string(content):
+        try:
+            final_decrypted_data = decrypt_nested(encoded_data,reversal)
+            final_data += process_data(final_decrypted_data)
+        except Exception as e:
+            print(e)
+        # print(final_decrypted_data)
+
+
+
+
+
+# print(final_decrypted_data)
 with open("./output.py", 'wb') as f:
-    f.write(process_data("#")+process_data(formatted_date)+process_data("\n")+process_data(final_decrypted_data))
+    f.write(final_data)
