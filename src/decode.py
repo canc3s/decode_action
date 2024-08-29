@@ -27,6 +27,7 @@ def try_decode_reversal(data, reversal):
 def try_decompress(data):
     for decompress_func in [gzip.decompress, bz2.decompress, zlib.decompress, lzma.decompress]:
         try:
+            print(f"正在用 {decompress_func} 解密")
             return decompress_func(data)
         except Exception as e:
             pass
