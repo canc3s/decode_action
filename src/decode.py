@@ -1,6 +1,5 @@
 import base64
 import bz2
-import time
 import zlib
 import lzma
 import gzip
@@ -24,14 +23,19 @@ def try_decode_reversal(data, reversal):
     else:
         return data
 
+
 def try_decompress(data):
     for decompress_func in [gzip.decompress, bz2.decompress, zlib.decompress, lzma.decompress]:
         try:
-            print(f"正在用 {decompress_func} 解密")
-            return decompress_func(data)
+            decompressed_data = decompress_func(data)
+            # 尝试递归解压
+            return try_decompress(decompressed_data)
         except Exception as e:
             pass
-    return data
+    try:
+        return data.decode()
+    except Exception as e:
+        return data
 
 
 def try_decode_base64(data):
@@ -54,27 +58,27 @@ def Encoded_script_decode(data):
     return
 
 
-def decrypt_nested(data,reversal):
+def decrypt_nested(data, reversal):
     while True:
         global count
         count += 1
         print(f"正在进行第 {count} 层解密")
-        new_data = try_decode_reversal(data,reversal)
+        new_data = try_decode_reversal(data, reversal)
         new_data = try_decode_base64(new_data)
         new_data = try_decompress(new_data)
-
         if "exec(" in str(new_data):
             # 获取所有编码字符串
             encoded_data_list = extract_encoded_string(new_data)
+            if encoded_data_list == None:
+                return new_data
             # 循环解密所有编码字符串
             for encoded_data in encoded_data_list:
-                new_data = decrypt_nested(encoded_data,reversal)
+                new_data = decrypt_nested(encoded_data, reversal)
                 return new_data
                 # 使用字符串替换方法更新 new_data
         else:
             print("无法进一步解密，退出循环")
             return new_data
-
 
 
 # 解密嵌套加密数据
@@ -93,6 +97,7 @@ def process_data(data):
         raise TypeError("Expected string or bytes-like object")
     return byte_data
 
+
 final_data = process_data("#") + process_data(formatted_date) + process_data("\n")
 with open('./input.py', 'r', encoding='utf-8') as file:
     # 读取文件内容
@@ -103,16 +108,11 @@ with open('./input.py', 'r', encoding='utf-8') as file:
     # 打印内容
     for encoded_data in extract_encoded_string(content):
         try:
-            final_decrypted_data = decrypt_nested(encoded_data,reversal)
+            final_decrypted_data = decrypt_nested(encoded_data, reversal)
             final_data += process_data(final_decrypted_data)
         except Exception as e:
             print(e)
-        # print(final_decrypted_data)
 
 
-
-
-
-# print(final_decrypted_data)
 with open("./output.py", 'wb') as f:
     f.write(final_data)
