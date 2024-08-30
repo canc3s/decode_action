@@ -12,37 +12,52 @@ import re
 # 获取当前日期和时间
 now = datetime.now()
 count = 0
-
+reversal = False
+base_type = "b64decode"
+decode_func = {
+    "b85decode": base64.b85decode,
+    "b64decode": base64.b64decode,
+    "b32decode": base64.b32decode,
+    "b16decode": base64.b16decode,
+}
 # 将日期和时间格式化为字符串
 formatted_date = now.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def try_decode_reversal(data, reversal):
+def try_decode_reversal(data):
     if reversal:
+        print("发现 [::-1] ，正在反制")
         return data[::-1]
     else:
         return data
 
 
 def try_decompress(data):
-    for decompress_func in [gzip.decompress, bz2.decompress, zlib.decompress, lzma.decompress]:
+    for decompress_func, method_name in [
+        (gzip.decompress, "gzip"),
+        (bz2.decompress, "bz2"),
+        (zlib.decompress, "zlib"),
+        (lzma.decompress, "lzma"),
+    ]:
         try:
             decompressed_data = decompress_func(data)
+            print(f"成功使用 {method_name} 解压")
             # 尝试递归解压
             return try_decompress(decompressed_data)
         except Exception as e:
             pass
-    try:
-        return data.decode()
-    except Exception as e:
-        return data
+    return try_decode(data)
 
 
 def try_decode_base64(data):
     try:
-        return base64.b64decode(data)
-    except Exception:
-        return data
+        decode_data = decode_func[base_type](data)
+        print(f"成功使用 {base_type} 解码")
+        # 尝试递归解压
+        return decode_data
+    except Exception as e:
+        pass
+    return try_decode(data)
 
 
 def extract_encoded_string(data):
@@ -54,16 +69,19 @@ def extract_encoded_string(data):
     return None
 
 
-def Encoded_script_decode(data):
-    return
+def try_decode(data):
+    try:
+        return data.decode()
+    except Exception as e:
+        return data
 
 
-def decrypt_nested(data, reversal):
+def decrypt_nested(data):
     while True:
         global count
         count += 1
         print(f"正在进行第 {count} 层解密")
-        new_data = try_decode_reversal(data, reversal)
+        new_data = try_decode_reversal(data)
         new_data = try_decode_base64(new_data)
         new_data = try_decompress(new_data)
         if "exec(" in str(new_data):
@@ -73,7 +91,7 @@ def decrypt_nested(data, reversal):
                 return new_data
             # 循环解密所有编码字符串
             for encoded_data in encoded_data_list:
-                new_data = decrypt_nested(encoded_data, reversal)
+                new_data = decrypt_nested(encoded_data)
                 return new_data
                 # 使用字符串替换方法更新 new_data
         else:
@@ -102,17 +120,18 @@ final_data = process_data("#") + process_data(formatted_date) + process_data("\n
 with open('./input.py', 'r', encoding='utf-8') as file:
     # 读取文件内容
     content = file.read().strip()
-    reversal = False
     if "[::-1]" in content:
         reversal = True
+    for func in decode_func:
+        if func in content:
+            base_type = func
     # 打印内容
     for encoded_data in extract_encoded_string(content):
         try:
-            final_decrypted_data = decrypt_nested(encoded_data, reversal)
+            final_decrypted_data = decrypt_nested(encoded_data)
             final_data += process_data(final_decrypted_data)
         except Exception as e:
             print(e)
-
 
 with open("./output.py", 'wb') as f:
     f.write(final_data)
