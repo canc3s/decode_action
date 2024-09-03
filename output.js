@@ -1,4 +1,4 @@
-//Tue Sep 03 2024 05:55:55 GMT+0000 (Coordinated Universal Time)
+//Tue Sep 03 2024 05:58:45 GMT+0000 (Coordinated Universal Time)
 //Base:https://github.com/echo094/decode-js
 //Modify:https://github.com/canc3s/decode_action
 console.log("=>=>=>=>____来自 By 幼稚园小妹妹 (顶级插件售后服务951584089)丨Autman订阅源:Lxg-021002丨期待为您服务<=<=<=<=");
@@ -22,7 +22,7 @@ const _0x1366a8 = _0x1c156a("顺丰速运"),
     CookieJar: _0xd37655
   } = require("tough-cookie"),
   _0x3d0561 = "sfsy",
-  _0x371509 = /[\n]/,
+  _0x371509 = /[&]/,
   _0x12e0b9 = [_0x3d0561 + "Url"],
   _0x94f81d = process.env[_0x3d0561 + "Bee"] || "false",
   _0x3bec27 = process.env[_0x3d0561 + "DragonBoatDraw"] || "false",
