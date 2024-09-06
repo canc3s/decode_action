@@ -63,7 +63,7 @@ def try_decode_base64(data):
 def extract_encoded_string(data):
     if type(data) == str:
         data = data.encode('utf-8')
-    match = re.findall(br"\(b?\'([^\']{1000,}?)\'\)", data) or re.search(br'\(b?"([^\"]{1000,}?)"\)', data)
+    match = re.findall(br"b?\'([^\']{1000,}?)\'", data) or re.search(br'b?"([^\"]{1000,}?)"', data)
     if match:
         return match
     return None
