@@ -1,4 +1,4 @@
-//Fri Sep 20 2024 06:22:30 GMT+0000 (Coordinated Universal Time)
+//Wed Sep 25 2024 07:07:19 GMT+0000 (Coordinated Universal Time)
 //Base:https://github.com/echo094/decode-js
 //Modify:https://github.com/canc3s/decode_action
 const $ = new Env("望潮");
