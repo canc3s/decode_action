@@ -63,7 +63,7 @@ def try_decode_base64(data):
 def extract_encoded_string(data):
     if type(data) == str:
         data = data.encode('utf-8')
-    match = re.findall(br"b?\'([^\']{1000,}?)\'", data) or re.search(br'b?"([^\"]{1000,}?)"', data)
+    match = re.findall(br"\(b?\'([^\']{1000,}?)\'\)", data) or re.search(br'\(b?"([^\"]{1000,}?)"\)', data)
     if match:
         return match
     return None
@@ -87,7 +87,7 @@ def decrypt_nested(data):
         if "exec(" in str(new_data):
             # 获取所有编码字符串
             encoded_data_list = extract_encoded_string(new_data)
-            if encoded_data_list == None:
+            if encoded_data_list is None:
                 return new_data
             # 循环解密所有编码字符串
             for encoded_data in encoded_data_list:
@@ -116,7 +116,9 @@ def process_data(data):
     return byte_data
 
 
-final_data = process_data("#") + process_data(formatted_date) + process_data("\n")
+final_data = process_data("#") + process_data(formatted_date) + process_data("\n") + \
+    process_data("#") + process_data("//Base:https://github.com/echo094/decode-js") + process_data("\n") + \
+    process_data("#") + process_data("//Modify:https://github.com/canc3s/decode_action") + process_data("\n")*3
 with open('./input.py', 'r', encoding='utf-8') as file:
     # 读取文件内容
     content = file.read().strip()
